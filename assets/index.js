@@ -48,7 +48,7 @@ function getFiles(dir) {
                 $('.cards').append('<a href="' + "#" + item.path + '"><article><img href="' + "#" + item.path + '" class="article-img" src="' + item.thumbnail + '" alt=" " /><h1 class="article-title">' + item.name + '</h1></article></a>');
             });
             $.each(files, function (id, item) {
-                $('.cards').append('<a href="' + item.path + '"><article><img href="' + "#" + item.path + '" class="article-img" src="' + item.thumbnail + '" alt=" " /><h1 class="article-title">' + item.name + '</h1></article></a>');
+                $('.cards').append('<a target="_blank" href="' + item.path + '"><article><img href="' + "#" + item.path + '" class="article-img" src="' + item.thumbnail + '" alt=" " /><h1 class="article-title">' + item.name + '</h1></article></a>');
             });
             updateBread();
         });
