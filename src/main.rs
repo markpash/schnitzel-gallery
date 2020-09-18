@@ -9,24 +9,16 @@ extern crate serde_json;
 
 mod helpers;
 mod paths;
-use dotenv;
+
 use helpers::{dirvec, genthumb};
-use paths::{assets_path, gallery_path, thumbnails_path};
+use paths::{gallery_path, notfound_path, thumbnails_path};
 use rocket::response::NamedFile;
 use rocket_contrib::json::Json;
 use rocket_contrib::serve::StaticFiles;
-use rocket_contrib::templates::Template;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-
-#[get("/")]
-fn index() -> Template {
-    let context = HashMap::<String, String>::new();
-    Template::render("index", &context)
-}
 
 #[get("/thumbnails/<path..>")]
 fn thumbnails(path: PathBuf) -> Result<NamedFile, io::Error> {
@@ -38,7 +30,7 @@ fn thumbnails(path: PathBuf) -> Result<NamedFile, io::Error> {
         genthumb(path);
         NamedFile::open(local_thumb)
     } else {
-        NamedFile::open(Path::new(&assets_path()).join("notfound.jpg"))
+        NamedFile::open(Path::new(&notfound_path()))
     }
 }
 
@@ -48,7 +40,7 @@ fn gallery(path: PathBuf) -> Result<NamedFile, io::Error> {
     if local_path.is_file() {
         NamedFile::open(local_path)
     } else {
-        NamedFile::open(Path::new(&assets_path()).join("notfound.jpg"))
+        NamedFile::open(Path::new(&notfound_path()))
     }
 }
 
@@ -69,10 +61,9 @@ fn api(path: PathBuf) -> Json<Value> {
 }
 
 fn main() {
-    dotenv::dotenv().unwrap();
+    dotenv::dotenv().ok();
     rocket::ignite()
-        .mount("/", routes![index, api, apihome, gallery, thumbnails])
-        .mount("/assets", StaticFiles::from(assets_path()))
-        .attach(Template::fairing())
+        .mount("/", StaticFiles::from("static/".to_string()))
+        .mount("/", routes![api, apihome, gallery, thumbnails])
         .launch();
 }
