@@ -32,8 +32,9 @@ var static embed.FS
 var notfound []byte
 
 var (
-	GALLERY_PATH    = ""
-	THUMBNAILS_PATH = ""
+	GALLERY_PATH        = ""
+	THUMBNAILS_PATH     = ""
+	INCLUDE_FILES_REGEX *regexp.Regexp
 )
 
 const defaultThumbnailName = "thumbnail.jpg"
@@ -64,6 +65,12 @@ func handleApi(c *fiber.Ctx) error {
 	for _, dirEntry := range dirs {
 		if thumbNameMatch.MatchString(strings.ToLower(dirEntry.Name())) {
 			continue
+		}
+
+		if INCLUDE_FILES_REGEX != nil {
+			if !dirEntry.IsDir() && !INCLUDE_FILES_REGEX.MatchString(strings.ToLower(dirEntry.Name())) {
+				continue
+			}
 		}
 
 		item := dirItem{
@@ -194,6 +201,10 @@ func thumbnailHandler(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusBadRequest)
 	}
 
+	if INCLUDE_FILES_REGEX != nil && !INCLUDE_FILES_REGEX.MatchString(strings.ToLower(urlPath)) {
+		return c.SendStatus(http.StatusNotFound)
+	}
+
 	galleryPath := path.Join(GALLERY_PATH, urlPath)
 	thumbPath := path.Join(THUMBNAILS_PATH, urlPath)
 
@@ -262,13 +273,18 @@ func thumbnailHandler(c *fiber.Ctx) error {
 }
 
 func galleryHandler(c *fiber.Ctx) error {
-	imgPath, err := url.QueryUnescape(c.Params("*"))
+	urlPath, err := url.QueryUnescape(c.Params("*"))
 	if err != nil {
 		return err
 	}
 
-	if err := c.SendFile(path.Join(GALLERY_PATH, imgPath), false); err != nil {
-		return err
+	if INCLUDE_FILES_REGEX != nil && !INCLUDE_FILES_REGEX.MatchString(strings.ToLower(urlPath)) {
+		return c.SendStatus(http.StatusNotFound)
+	}
+
+	galleryPath := path.Join(GALLERY_PATH, urlPath)
+	if err := c.SendFile(galleryPath, false); err != nil {
+		return c.SendStatus(http.StatusInternalServerError)
 	}
 
 	return nil
@@ -306,6 +322,14 @@ func main() {
 	}
 
 	sem = semaphore.NewWeighted(int64(c))
+
+	includeRegex, ok := os.LookupEnv("SG_INCLUDE_FILES_REGEX")
+	if ok {
+		INCLUDE_FILES_REGEX, err = regexp.Compile(includeRegex)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	app := fiber.New()
 	app.Get("/api/*", handleApi)
