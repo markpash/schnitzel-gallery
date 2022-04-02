@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
@@ -127,14 +128,22 @@ func createThumb(ctx context.Context, imagePath string) error {
 }
 
 func thumbnailHandler(c *fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
 	imgPath, err := url.QueryUnescape(c.Params("*"))
 	if err != nil {
 		return err
 	}
 
 	filePath := path.Join(THUMBNAILS_PATH, imgPath)
-	if _, err = os.Open(filePath); err != nil {
-		if err := createThumb(context.Background(), imgPath); err != nil {
+	thumbFile, err := os.Open(filePath)
+	if err != nil {
+		if err := createThumb(ctx, imgPath); err != nil {
+			return err
+		}
+	} else if stat, err := thumbFile.Stat(); err != nil || stat.Size() < 1 {
+		if err := createThumb(ctx, imgPath); err != nil {
 			return err
 		}
 	}
