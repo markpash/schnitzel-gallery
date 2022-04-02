@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"image"
 	"image/draw"
@@ -10,10 +11,12 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/nfnt/resize"
+	"golang.org/x/sync/semaphore"
 )
 
 //go:embed static
@@ -25,6 +28,8 @@ var (
 )
 
 var thumbnames = map[string]struct{}{"thumbnail.jpg": {}, "thumbnail.png": {}}
+
+var sem *semaphore.Weighted
 
 type dirItem struct {
 	Name      string `json:"name"`
@@ -85,7 +90,12 @@ func genThumb(input *os.File) image.Image {
 	return m
 }
 
-func createThumb(imagePath string) error {
+func createThumb(ctx context.Context, imagePath string) error {
+	if err := sem.Acquire(ctx, 1); err != nil {
+		return err
+	}
+	defer sem.Release(1)
+
 	galleryPath := path.Join(GALLERY_PATH, imagePath)
 	thumbPath := path.Join(THUMBNAILS_PATH, imagePath)
 
@@ -124,7 +134,7 @@ func thumbnailHandler(c *fiber.Ctx) error {
 
 	filePath := path.Join(THUMBNAILS_PATH, imgPath)
 	if _, err = os.Open(filePath); err != nil {
-		if err := createThumb(imgPath); err != nil {
+		if err := createThumb(context.Background(), imgPath); err != nil {
 			return err
 		}
 	}
@@ -165,6 +175,22 @@ func main() {
 	if !ok {
 		LISTEN_ADDR = "127.0.0.1:3000"
 	}
+
+	CONCURRENT_THUMBS, ok := os.LookupEnv("SG_CONCURRENT_THUMBS")
+	if !ok {
+		CONCURRENT_THUMBS = "16"
+	}
+
+	c, err := strconv.Atoi(CONCURRENT_THUMBS)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if c < 1 {
+		log.Fatal("SG_CONCURRENT_THUMBS must be greater than 0")
+	}
+
+	sem = semaphore.NewWeighted(int64(c))
 
 	app := fiber.New()
 	app.Get("/api/*", handleApi)
