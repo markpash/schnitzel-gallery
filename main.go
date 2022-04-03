@@ -75,8 +75,8 @@ func handleApi(c *fiber.Ctx) error {
 
 		item := dirItem{
 			Name:      dirEntry.Name(),
-			Path:      path.Join("/gallery", apiPath, dirEntry.Name()),
-			Thumbnail: path.Join("/thumbnails", apiPath, dirEntry.Name()),
+			Path:      path.Join("/gallery", apiPath, url.QueryEscape(dirEntry.Name())),
+			Thumbnail: path.Join("/thumbnails", apiPath, url.QueryEscape(dirEntry.Name())),
 			Dir:       dirEntry.IsDir(),
 		}
 
@@ -234,7 +234,6 @@ func thumbnailHandler(c *fiber.Ctx) error {
 
 	// The thumbnail isn't present, generate it if necessary.
 
-	origNotFound := false
 	// Don't continue if the original file isn't present.
 	origFile, err := os.Open(galleryPath)
 	if err != nil {
@@ -245,20 +244,14 @@ func thumbnailHandler(c *fiber.Ctx) error {
 		if path.Base(thumbPath) == defaultThumbnailName {
 			// Iterate over the gallery directory and try to find a
 			// match.
-			origFile, err = findThumbSource(path.Dir(galleryPath))
-			if err != nil {
-				origNotFound = true
-			}
-			defer origFile.Close()
-		} else {
-			origNotFound = true
+			origFile, _ = findThumbSource(path.Dir(galleryPath))
 		}
 	}
 	defer origFile.Close()
 
 	// The original file doesn't exist, return 404 and a notfound
 	// image.
-	if origNotFound {
+	if origFile == nil {
 		if _, err := c.Write(notfound); err != nil {
 			return c.SendStatus(http.StatusInternalServerError)
 		}
