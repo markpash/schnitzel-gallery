@@ -7,7 +7,9 @@ import (
 	"errors"
 	"image"
 	"image/draw"
+	_ "image/gif"
 	"image/jpeg"
+	_ "image/png"
 	"io"
 	"log"
 	"net/http"
@@ -22,6 +24,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/nfnt/resize"
+	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/tiff"
+	_ "golang.org/x/image/vp8"
+	_ "golang.org/x/image/vp8l"
+	_ "golang.org/x/image/webp"
 	"golang.org/x/sync/semaphore"
 )
 
