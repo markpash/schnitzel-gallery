@@ -5,8 +5,8 @@ go 1.17
 require (
 	github.com/gofiber/fiber/v2 v2.31.0
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
-	golang.org/x/image v0.0.0-20220321031419-a8550c1d254a
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/image v0.5.0
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 )
 
 require (
@@ -15,5 +15,5 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.34.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 )
